@@ -66,3 +66,8 @@ Kakao Map API Integration Project using Flutter.
 - **2026-06-12 15:47:** Resolved Kakao Map SDK `kakao is not defined` error by correcting the API key typo and updating the WebView base URL.
 - **2026-06-12 15:50:** Documentation rewritten with detailed troubleshooting steps.
 - **2026-06-12 16:30:** Implemented search UI with Kakao Local API integration. Added distance-based sorting, dropdown search results, and location boundary fallback for emulators.
+- **2026-06-12 16:50:** Massive MVC & Clean Architecture Refactoring.
+  - Extracted UI components into `SearchBarWidget` and `SearchResultOverlay`.
+  - Decoupled logic using `LocationService` (Geolocator & Boundary checks) and `KakaoMapRepository` (HTTP network requests).
+  - Introduced `PlaceModel` to replace raw dynamic JSON maps for strict type safety.
+  - Implemented Try-Catch based error handling with custom exceptions.

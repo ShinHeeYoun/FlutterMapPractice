@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kakao_map_plugin/kakao_map_plugin.dart';
 import '../controller/map_controller.dart';
+import 'widgets/search_bar_widget.dart';
+import 'widgets/search_result_overlay.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -18,12 +20,12 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _mapController = MapController(
-      onOutOfBoundary: () {
+      onLocationError: (message) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('국내 위치만 지원하여 서울 중심으로 이동합니다.'),
-              duration: Duration(seconds: 3),
+            SnackBar(
+              content: Text(message),
+              duration: const Duration(seconds: 3),
             ),
           );
         });
@@ -76,70 +78,29 @@ class _MapScreenState extends State<MapScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.all(12.0),
-                          child: Icon(Icons.search, color: Colors.grey),
-                        ),
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            focusNode: _searchFocusNode,
-                            decoration: const InputDecoration(
-                              hintText: '장소 검색',
-                              border: InputBorder.none,
-                              isDense: true,
-                            ),
-                            onSubmitted: (value) {
-                              _mapController.searchPlace(value);
-                            },
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.clear, color: Colors.grey),
-                          onPressed: () {
-                            _searchController.clear();
-                            _unfocusAndClear();
-                          },
-                        ),
-                      ],
-                    ),
+                  SearchBarWidget(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    onSubmitted: (value) {
+                      _mapController.searchPlace(value);
+                    },
+                    onClear: () {
+                      _searchController.clear();
+                      _unfocusAndClear();
+                    },
                   ),
                   AnimatedBuilder(
                     animation: _mapController,
                     builder: (context, child) {
-                      if (!_mapController.hasSearched && !_mapController.isSearching) {
-                        return const SizedBox.shrink();
-                      }
-                      
-                      return Container(
-                        margin: const EdgeInsets.only(top: 8.0),
-                        constraints: const BoxConstraints(maxHeight: 300),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: _buildSearchResults(),
+                      return SearchResultOverlay(
+                        isSearching: _mapController.isSearching,
+                        hasSearched: _mapController.hasSearched,
+                        searchResults: _mapController.searchResults,
+                        onPlaceSelected: (place) {
+                          _searchFocusNode.unfocus();
+                          _searchController.text = place.placeName;
+                          _mapController.selectPlace(place);
+                        },
                       );
                     },
                   ),
@@ -163,63 +124,5 @@ class _MapScreenState extends State<MapScreen> {
       ),
     );
   }
-
-  Widget _buildSearchResults() {
-    if (_mapController.isSearching) {
-      return const Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Center(
-          child: CircularProgressIndicator(color: Colors.blueAccent),
-        ),
-      );
-    }
-
-    if (_mapController.searchResults.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Center(
-          child: Text(
-            '검색 결과가 없습니다',
-            style: TextStyle(color: Colors.grey),
-          ),
-        ),
-      );
-    }
-
-    return ListView.separated(
-      shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      itemCount: _mapController.searchResults.length,
-      separatorBuilder: (context, index) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final place = _mapController.searchResults[index];
-        // Kakao Local API returns distance in meters as a string if 'sort' is distance and x, y are provided.
-        final distanceStr = place['distance'] as String?;
-        String distanceText = '';
-        if (distanceStr != null && distanceStr.isNotEmpty) {
-          final distanceVal = int.tryParse(distanceStr);
-          if (distanceVal != null) {
-            if (distanceVal < 1000) {
-              distanceText = '${distanceVal}m';
-            } else {
-              distanceText = '${(distanceVal / 1000).toStringAsFixed(1)}km';
-            }
-          }
-        }
-
-        return ListTile(
-          title: Text(place['place_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text(place['address_name'] ?? ''),
-          trailing: distanceText.isNotEmpty 
-            ? Text(distanceText, style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.w500))
-            : null,
-          onTap: () {
-            _searchFocusNode.unfocus();
-            _searchController.text = place['place_name'] ?? '';
-            _mapController.selectPlace(place);
-          },
-        );
-      },
-    );
-  }
 }
+
