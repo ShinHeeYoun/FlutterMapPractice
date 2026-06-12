@@ -30,9 +30,15 @@ class _MapScreenState extends State<MapScreen> {
       appBar: AppBar(
         title: const Text('Kakao Map Practice'),
       ),
-      body: KakaoMap(
-        onMapCreated: (controller) {
-          _mapController.onMapCreated(controller);
+      body: AnimatedBuilder(
+        animation: _mapController,
+        builder: (context, child) {
+          return KakaoMap(
+            onMapCreated: (controller) {
+              _mapController.onMapCreated(controller);
+            },
+            markers: _mapController.markers.toList(),
+          );
         },
       ),
     );

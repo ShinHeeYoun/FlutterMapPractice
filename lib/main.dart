@@ -7,8 +7,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   
-  // Initialize Kakao Map Plugin with the JavaScript Key
-  AuthRepository.initialize(appKey: dotenv.env['KAKAO_MAP_JS_KEY'] ?? '');
+  // Initialize Kakao Map Plugin with the JavaScript Key and baseUrl
+  // The key ends with 472a4e, not 424e4e
+  AuthRepository.initialize(
+    appKey: '400771ec937cf5ee0b60ad77ed472a4e',
+    baseUrl: 'http://localhost:8080',
+  );
 
   runApp(const MyApp());
 }
