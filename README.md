@@ -54,6 +54,10 @@ Kakao Map API Integration Project using Flutter.
   3. Corrected a typographical error in the API key provided in the source code.
   4. Confirmed that the domain `http://localhost:8080` was correctly registered in the Kakao Developers Console under Web Platform -> Site Domain, and the API was toggled ON.
 
+### 6. Kakao Map Blank Screen on Emulator (Current Location)
+- **Symptom:** When attempting to move to the current location, the map displayed a blank screen with only the location marker.
+- **Resolution:** The default GPS location of Android emulators is Mountain View, California (Google HQ). Since Kakao Map only provides map tiles for South Korea, the map cannot render outside this region. Implemented a bounding box check `(Lat: 33~39, Lng: 124~132)` covering the Korean peninsula. If the GPS location falls outside these bounds, the app safely defaults to Gangnam Station `(37.4979, 127.0276)` and displays a `SnackBar` notification to the user.
+
 ## Update History
 
 - **2026-06-12 15:00:** Project initialized and modular MVC architecture applied.
@@ -61,3 +65,4 @@ Kakao Map API Integration Project using Flutter.
 - **2026-06-12 15:25:** Implemented device geolocation tracking using `geolocator` and added location permissions.
 - **2026-06-12 15:47:** Resolved Kakao Map SDK `kakao is not defined` error by correcting the API key typo and updating the WebView base URL.
 - **2026-06-12 15:50:** Documentation rewritten with detailed troubleshooting steps.
+- **2026-06-12 16:30:** Implemented search UI with Kakao Local API integration. Added distance-based sorting, dropdown search results, and location boundary fallback for emulators.
