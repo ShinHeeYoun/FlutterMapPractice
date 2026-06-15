@@ -63,15 +63,43 @@ class _MapScreenState extends State<MapScreen> {
                     child: CircularProgressIndicator(color: Colors.blueAccent),
                   );
                 }
-                return KakaoMap(
-                  center: _mapController.currentLocation,
-                  onMapCreated: (controller) {
-                    _mapController.onMapCreated(controller);
+                return Listener(
+                  onPointerDown: (_) {
+                    // Disable tracking when user touches the map to pan
+                    _mapController.disableTrackingMode();
                   },
-                  markers: _mapController.markers.toList(),
+                  child: KakaoMap(
+                    center: _mapController.currentLocation,
+                    onMapCreated: (controller) {
+                      _mapController.onMapCreated(controller);
+                    },
+                    markers: _mapController.markers.toList(),
+                  ),
                 );
               },
             ),
+          ),
+          // Tracking Direction Overlay
+          AnimatedBuilder(
+            animation: _mapController,
+            builder: (context, child) {
+              if (_mapController.isTrackingMode) {
+                return Center(
+                  child: Transform.rotate(
+                    angle: _mapController.heading * (3.1415926535897932 / 180),
+                    child: const Icon(
+                      Icons.arrow_upward,
+                      color: Colors.redAccent,
+                      size: 40,
+                      shadows: [
+                        Shadow(color: Colors.white, blurRadius: 10),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
           ),
           SafeArea(
             child: Padding(
@@ -121,13 +149,21 @@ class _MapScreenState extends State<MapScreen> {
           Positioned(
             bottom: 30,
             right: 20,
-            child: FloatingActionButton(
-              backgroundColor: Colors.white,
-              onPressed: () {
-                _unfocusAndClear();
-                _mapController.moveToCurrentLocation();
+            child: AnimatedBuilder(
+              animation: _mapController,
+              builder: (context, child) {
+                return FloatingActionButton(
+                  backgroundColor: _mapController.isTrackingMode ? Colors.blueAccent : Colors.white,
+                  onPressed: () {
+                    _unfocusAndClear();
+                    _mapController.toggleTrackingMode();
+                  },
+                  child: Icon(
+                    _mapController.isTrackingMode ? Icons.explore : Icons.my_location,
+                    color: _mapController.isTrackingMode ? Colors.white : Colors.blueAccent,
+                  ),
+                );
               },
-              child: const Icon(Icons.my_location, color: Colors.blueAccent),
             ),
           ),
         ],

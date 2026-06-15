@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kakao_map_plugin/kakao_map_plugin.dart';
+import 'package:flutter_compass/flutter_compass.dart';
 
 import '../model/place_model.dart';
 import '../repository/kakao_map_repository.dart';
@@ -19,6 +21,11 @@ class MapController extends ChangeNotifier {
   List<PlaceModel> _searchResults = [];
   bool _isSearching = false;
   bool _hasSearched = false;
+
+  bool _isTrackingMode = false;
+  double _heading = 0.0;
+  StreamSubscription? _locationSubscription;
+  StreamSubscription<CompassEvent>? _compassSubscription;
   
   // Callback for boundary exception
   Function(String message)? onLocationError;
@@ -30,6 +37,8 @@ class MapController extends ChangeNotifier {
   List<PlaceModel> get searchResults => _searchResults;
   bool get isSearching => _isSearching;
   bool get hasSearched => _hasSearched;
+  bool get isTrackingMode => _isTrackingMode;
+  double get heading => _heading;
 
   // Dependency Injection via constructor
   MapController({
@@ -83,6 +92,58 @@ class MapController extends ChangeNotifier {
     }
   }
 
+  void toggleTrackingMode() {
+    if (_isTrackingMode) {
+      disableTrackingMode();
+    } else {
+      _enableTrackingMode();
+    }
+  }
+
+  void _enableTrackingMode() {
+    _isTrackingMode = true;
+    moveToCurrentLocation();
+
+    // Start location tracking
+    _locationSubscription ??= _locationService.getLocationStream().listen((position) {
+      final latLng = LatLng(position.latitude, position.longitude);
+      _currentLocation = latLng;
+      
+      // Update marker
+      _markers.removeWhere((marker) => marker.markerId == 'current_location');
+      _markers.add(
+        Marker(
+          markerId: 'current_location',
+          latLng: latLng,
+        ),
+      );
+
+      if (_isTrackingMode && _kakaoMapController != null) {
+        _kakaoMapController!.setCenter(latLng);
+      }
+      notifyListeners();
+    });
+
+    // Start compass tracking
+    _compassSubscription ??= _locationService.getCompassStream()?.listen((event) {
+      if (event.heading != null) {
+        _heading = event.heading!;
+        if (_isTrackingMode) {
+          notifyListeners();
+        }
+      }
+    });
+
+    notifyListeners();
+  }
+
+  void disableTrackingMode() {
+    if (_isTrackingMode) {
+      _isTrackingMode = false;
+      notifyListeners();
+    }
+  }
+
   void clearSearch() {
     _searchResults.clear();
     _hasSearched = false;
@@ -131,12 +192,15 @@ class MapController extends ChangeNotifier {
       ),
     );
     
+    disableTrackingMode();
     _kakaoMapController?.setCenter(latLng);
     clearSearch();
   }
 
   @override
   void dispose() {
+    _locationSubscription?.cancel();
+    _compassSubscription?.cancel();
     super.dispose();
   }
 }

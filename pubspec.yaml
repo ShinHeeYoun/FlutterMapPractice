@@ -15,6 +15,7 @@ dependencies:
   flutter_dotenv: ^5.1.0
   geolocator: ^14.0.2
   http: ^1.6.0
+  flutter_compass: ^0.8.1
 
 dev_dependencies:
   flutter_test:

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:kakao_map_plugin/kakao_map_plugin.dart';
+import 'package:flutter_compass/flutter_compass.dart';
 
 class LocationException implements Exception {
   final String message;
@@ -76,5 +77,18 @@ class LocationService {
         fallbackLocation: _seoulFallback,
       );
     }
+  }
+
+  Stream<Position> getLocationStream() {
+    return Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 2, // notify every 2 meters
+      ),
+    );
+  }
+
+  Stream<CompassEvent>? getCompassStream() {
+    return FlutterCompass.events;
   }
 }

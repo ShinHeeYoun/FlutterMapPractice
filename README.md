@@ -71,3 +71,7 @@ Flutter를 이용한 카카오맵(Kakao Map) API 연동 프로젝트입니다.
   - 컨트롤러 내부의 복잡한 로직을 `LocationService`(GPS 및 폴백 제어)와 `KakaoMapRepository`(HTTP 네트워크 통신)로 완벽히 분리.
   - 타입 안정성을 보장하기 위해 기존의 Map 형태 데이터 대신 명시적인 `PlaceModel` 객체를 도입.
   - 커스텀 Exception 클래스들을 활용한 Try-Catch 기반의 에러 핸들링 및 상태 관리 구현.
+- **2026-06-15 13:20:** 실시간 위치 추적 및 나침반(Compass) 방향 표시 기능 구현.
+  - `flutter_compass` 패키지를 연동하여 기기가 향하는 방향을 실시간으로 감지하고 화면 중앙에 회전하는 화살표 오버레이 추가.
+  - `Geolocator.getPositionStream`을 활용한 실시간 위치 추적 모드(Tracking Mode) 토글 기능 구현.
+  - 사용자가 지도를 터치하여 드래그할 경우 추적 모드가 자동으로 일시 해제(Auto-pause)되도록 UX 개선.
