@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:kakao_map_plugin/kakao_map_plugin.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import '../controller/map_controller.dart';
+import '../controller/alarm_controller.dart';
 import 'widgets/search_bar_widget.dart';
 import 'widgets/search_result_overlay.dart';
 import 'widgets/menu_bottom_sheet.dart';
+import 'widgets/alarm_setup_bottom_sheet.dart';
+import 'alarm_ringing_screen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -14,6 +18,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   late final MapController _mapController;
+  final AlarmController _alarmController = AlarmController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
@@ -32,6 +37,29 @@ class _MapScreenState extends State<MapScreen> {
         });
       },
     );
+    _initForegroundTaskListener();
+  }
+
+  void _initForegroundTaskListener() {
+    FlutterForegroundTask.addTaskDataCallback(_onReceiveTaskData);
+  }
+
+  void _onReceiveTaskData(Object data) {
+    if (data is String && data.startsWith('ALARM_TRIGGERED')) {
+      final parts = data.split('_');
+      final distance = parts.length > 2 ? parts[2] : '0';
+      
+      // Prevent pushing multiple times
+      if (ModalRoute.of(context)?.settings.name != '/alarm') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            settings: const RouteSettings(name: '/alarm'),
+            builder: (_) => AlarmRingingScreen(distance: distance),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -123,7 +151,10 @@ class _MapScreenState extends State<MapScreen> {
                         context: context,
                         isScrollControlled: true,
                         backgroundColor: Colors.transparent,
-                        builder: (context) => const MenuBottomSheet(),
+                        builder: (context) => MenuBottomSheet(
+                          mapController: _mapController,
+                          alarmController: _alarmController,
+                        ),
                       );
                     },
                   ),

@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
+import '../../controller/map_controller.dart';
+import '../../controller/alarm_controller.dart';
+import 'alarm_setup_bottom_sheet.dart';
 
 class MenuBottomSheet extends StatelessWidget {
-  const MenuBottomSheet({super.key});
+  final MapController mapController;
+  final AlarmController alarmController;
+
+  const MenuBottomSheet({
+    super.key,
+    required this.mapController,
+    required this.alarmController,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +55,22 @@ class MenuBottomSheet extends StatelessWidget {
                     // TODO: 연동할 환경 설정 로직 구현
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('환경 설정 기능은 준비 중입니다.')),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.alarm_on, color: Colors.blueAccent),
+                  title: const Text('Beta: 목적지 기반 알림 기능 사용'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => AlarmSetupBottomSheet(
+                        mapController: mapController,
+                        alarmController: alarmController,
+                      ),
                     );
                   },
                 ),

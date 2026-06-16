@@ -104,3 +104,8 @@ Flutter를 이용한 카카오맵(Kakao Map) API 연동 프로젝트입니다.
   - `flutter_compass` 패키지를 연동하여 기기가 향하는 방향을 실시간으로 감지하고 화면 중앙에 회전하는 화살표 오버레이 추가.
   - `Geolocator.getPositionStream`을 활용한 실시간 위치 추적 모드(Tracking Mode) 토글 기능 구현.
   - 사용자가 지도를 터치하여 드래그할 경우 추적 모드가 자동으로 일시 해제(Auto-pause)되도록 UX 개선.
+- **2026-06-16 14:10:** 목적지 기반 백그라운드 위치 알림(Alarm) 기능 구현.
+  - `flutter_foreground_task`를 활용하여 앱이 백그라운드나 잠금 상태일 때도 지정된 목적지와 현재 위치의 거리를 실시간으로 계산하는 `AlarmService` 구축.
+  - 설정한 반경 내 진입 시 안드로이드 풀스크린 인텐트(Full-screen Intent)를 발생시켜 기기 화면을 깨우고 `AlarmRingingScreen`을 띄우는 네이티브 기능 연동.
+  - 진동(`vibration`)과 소리(`flutter_ringtone_player`)를 동반한 갤럭시 기본 알람 스타일의 UI 적용 및 밀어서 알림 끄기 기능 지원.
+  - 하단 메뉴 및 알림 전용 바텀 시트(`AlarmSetupBottomSheet`)를 통해 손쉽게 목적지 검색 및 반경을 설정할 수 있도록 UI/UX 향상.
