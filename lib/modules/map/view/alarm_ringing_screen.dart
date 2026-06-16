@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:vibration/vibration.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import '../../service/alarm_service.dart';
+import '../service/alarm_service.dart';
 
 class AlarmRingingScreen extends StatefulWidget {
   final String distance;
@@ -25,7 +25,7 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen> {
 
   Future<void> _startAlarm() async {
     // Play default alarm ringtone looping
-    FlutterRingtonePlayer().playAlarm(loop: true);
+    FlutterRingtonePlayer().playAlarm();
     
     // Vibrate repeatedly
     if (await Vibration.hasVibrator() ?? false) {

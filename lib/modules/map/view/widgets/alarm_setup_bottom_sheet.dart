@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../controller/alarm_controller.dart';
 import '../../controller/map_controller.dart';
 import '../../model/place_model.dart';
-import 'package:provider/provider.dart';
 
 class AlarmSetupBottomSheet extends StatefulWidget {
   final MapController mapController;
@@ -30,13 +29,6 @@ class _AlarmSetupBottomSheetState extends State<AlarmSetupBottomSheet> {
     });
 
     try {
-      final lat = widget.mapController.currentLocation?.latitude ?? 37.4979;
-      final lng = widget.mapController.currentLocation?.longitude ?? 127.0276;
-      
-      // Use mapController's repository to search (we can expose a method or just use searchPlace but it updates main UI)
-      // Since we don't want to affect main map search state immediately, we could call repository directly 
-      // but MapController's searchPlace modifies its own state. 
-      // Let's just use the controller's state. Wait, if we use it, the main screen will also show results.
       await widget.mapController.searchPlace(keyword);
       setState(() {
         _localSearchResults = widget.mapController.searchResults;
@@ -110,7 +102,7 @@ class _AlarmSetupBottomSheetState extends State<AlarmSetupBottomSheet> {
                   final place = _localSearchResults[index];
                   return ListTile(
                     title: Text(place.placeName),
-                    subtitle: Text(place.roadAddressName.isNotEmpty ? place.roadAddressName : place.addressName),
+                    subtitle: Text(place.addressName),
                     onTap: () {
                       widget.alarmController.setDestination(place);
                       widget.mapController.selectPlace(place);

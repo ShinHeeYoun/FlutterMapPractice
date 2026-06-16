@@ -16,8 +16,7 @@ class AlarmTaskHandler extends TaskHandler {
   bool isTriggered = false;
 
   @override
-  Future<void> onStart(DateTime timestamp, SendPort? sendPort) async {
-    _sendPort = sendPort;
+  Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
     final customData = await FlutterForegroundTask.getData<String>(key: 'alarmData');
     if (customData != null) {
       final parts = customData.split(',');
@@ -28,7 +27,7 @@ class AlarmTaskHandler extends TaskHandler {
   }
 
   @override
-  Future<void> onRepeatEvent(DateTime timestamp, SendPort? sendPort) async {
+  void onRepeatEvent(DateTime timestamp) async {
     if (isTriggered) return;
 
     try {
@@ -55,7 +54,7 @@ class AlarmTaskHandler extends TaskHandler {
         FlutterForegroundTask.launchApp();
         
         // Notify main thread
-        sendPort?.send('ALARM_TRIGGERED_${distance.toStringAsFixed(0)}');
+        FlutterForegroundTask.sendDataToMain('ALARM_TRIGGERED_${distance.toStringAsFixed(0)}');
         
         // Stop service after trigger
         FlutterForegroundTask.stopService();
@@ -66,7 +65,7 @@ class AlarmTaskHandler extends TaskHandler {
   }
 
   @override
-  Future<void> onDestroy(DateTime timestamp, SendPort? sendPort) async {}
+  Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {}
 
   @override
   void onReceiveData(Object data) {
@@ -85,19 +84,13 @@ class AlarmService {
         channelDescription: '목적지 도착 알림을 위한 백그라운드 서비스입니다.',
         channelImportance: NotificationChannelImportance.HIGH,
         priority: NotificationPriority.HIGH,
-        iconData: const NotificationIconData(
-          resType: ResourceType.mipmap,
-          resPrefix: ResourcePrefix.ic,
-          name: 'launcher',
-        ),
       ),
       iosNotificationOptions: const IOSNotificationOptions(
         showNotification: true,
         playSound: false,
       ),
-      foregroundTaskOptions: const ForegroundTaskOptions(
-        interval: 5000,
-        isOnceEvent: false,
+      foregroundTaskOptions: ForegroundTaskOptions(
+        eventAction: ForegroundTaskEventAction.repeat(5000),
         autoRunOnBoot: false,
         allowWakeLock: true,
         allowWifiLock: true,
