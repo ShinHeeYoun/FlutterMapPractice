@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:vibration/vibration.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
+import 'package:audioplayers/audioplayers.dart';
+import '../../../core/settings_controller.dart';
 import '../service/alarm_service.dart';
 
 class AlarmRingingScreen extends StatefulWidget {
@@ -16,6 +19,9 @@ class AlarmRingingScreen extends StatefulWidget {
 
 class _AlarmRingingScreenState extends State<AlarmRingingScreen> {
   Timer? _vibrateTimer;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final YoutubeExplode _yt = YoutubeExplode();
+  bool _isPlayingYoutube = false;
 
   @override
   void initState() {
@@ -24,8 +30,30 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen> {
   }
 
   Future<void> _startAlarm() async {
-    // Play default alarm ringtone looping
-    FlutterRingtonePlayer().playAlarm();
+    final settings = SettingsController();
+    bool playedYoutube = false;
+
+    if (settings.alarmSoundType == AlarmSoundType.youtubeLink && settings.youtubeUrl.isNotEmpty) {
+      try {
+        var videoId = VideoId.parseVideoId(settings.youtubeUrl);
+        if (videoId != null) {
+          var manifest = await _yt.videos.streamsClient.getManifest(videoId);
+          var audioStreamInfo = manifest.audioOnly.withHighestBitrate();
+          
+          await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+          await _audioPlayer.play(UrlSource(audioStreamInfo.url.toString()));
+          _isPlayingYoutube = true;
+          playedYoutube = true;
+        }
+      } catch (e) {
+        debugPrint('Failed to play youtube audio: $e');
+      }
+    }
+
+    if (!playedYoutube) {
+      // Play default alarm ringtone looping
+      FlutterRingtonePlayer().playAlarm();
+    }
     
     // Vibrate repeatedly
     if (await Vibration.hasVibrator() ?? false) {
@@ -36,7 +64,11 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen> {
   }
 
   void _stopAlarmAndDismiss() {
-    FlutterRingtonePlayer().stop();
+    if (_isPlayingYoutube) {
+      _audioPlayer.stop();
+    } else {
+      FlutterRingtonePlayer().stop();
+    }
     _vibrateTimer?.cancel();
     AlarmService.stopAlarm();
     FlutterForegroundTask.stopService();
@@ -47,7 +79,13 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen> {
 
   @override
   void dispose() {
-    FlutterRingtonePlayer().stop();
+    if (_isPlayingYoutube) {
+      _audioPlayer.stop();
+    } else {
+      FlutterRingtonePlayer().stop();
+    }
+    _audioPlayer.dispose();
+    _yt.close();
     _vibrateTimer?.cancel();
     super.dispose();
   }

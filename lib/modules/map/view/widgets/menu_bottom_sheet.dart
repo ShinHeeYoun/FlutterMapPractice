@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../controller/map_controller.dart';
 import '../../controller/alarm_controller.dart';
 import 'alarm_setup_bottom_sheet.dart';
+import 'settings_bottom_sheet.dart';
 
 class MenuBottomSheet extends StatelessWidget {
   final MapController mapController;
@@ -52,9 +53,11 @@ class MenuBottomSheet extends StatelessWidget {
                   title: const Text('환경 설정'),
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: 연동할 환경 설정 로직 구현
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('환경 설정 기능은 준비 중입니다.')),
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => const SettingsBottomSheet(),
                     );
                   },
                 ),
