@@ -30,32 +30,33 @@ Flutter를 이용한 카카오맵(Kakao Map) API 연동 프로젝트입니다.
 
 ## 소스 코드 구조 분석 (MVC 아키텍처)
 
-이 프로젝트는 유지보수와 기능 확장을 용이하게 하기 위해 MVC(Model-View-Controller) 아키텍처 패턴을 기반으로 관심사를 분리하여 설계되었습니다. 핵심 코드는 `lib/modules/map/` 디렉토리 하위에 위치합니다.
+이 프로젝트는 Android/Flutter 개발 경험이 적은 개발자라도 유지보수와 확장을 쉽게 할 수 있도록 **MVC(Model-View-Controller)** 디자인 패턴과 **Repository/Service** 패턴을 결합하여 폴더 구조와 관심사를 명확히 분리했습니다. 핵심 코드는 대부분 `lib/modules/map/` 하위에 위치합니다.
 
 ### 1. Model (`lib/modules/map/model/`)
-- **역할**: 애플리케이션에서 사용되는 데이터의 구조를 정의합니다.
-- **주요 파일**: `place_model.dart`
-  - 카카오 로컬 API에서 반환되는 JSON 형식의 장소 데이터를 Dart 객체로 변환하여 타입 안정성(Type Safety)을 보장합니다.
+- **역할**: 앱 내부에서 사용되는 순수한 데이터 구조와 타입을 정의합니다.
+- **주요 파일**: 
+  - `place_model.dart`: 카카오 장소 검색 API의 JSON 응답을 Dart 객체(Object)로 변환해주는 역할을 하여 코드의 타입 안정성(Type Safety)을 보장합니다.
 
 ### 2. View (`lib/modules/map/view/`)
-- **역할**: 사용자에게 보여지는 화면(UI)을 구성합니다. 비즈니스 로직을 포함하지 않으며, Controller의 상태를 구독하여 화면을 렌더링합니다.
+- **역할**: 사용자에게 보여지는 화면(UI)만을 담당합니다. 상태 변경이나 비즈니스 로직은 철저히 배제되며, Controller의 상태를 구독하여 화면을 그리는 역할만 수행합니다. 
 - **주요 파일**: 
-  - `map_screen.dart`: 카카오맵 지도를 렌더링하는 메인 화면입니다.
-  - `widgets/search_bar_widget.dart`: 상단 검색창 UI 위젯입니다.
-  - `widgets/search_result_overlay.dart`: 검색 결과를 리스트 형태로 보여주는 오버레이 UI 위젯입니다.
-  - `widgets/menu_bottom_sheet.dart`: 하단 설정 메뉴를 구성하는 바텀 시트 UI 위젯입니다.
+  - `map_screen.dart`: 카카오맵 지도와 검색창, 현재 위치 버튼이 배치되는 메인 화면입니다.
+  - `alarm_ringing_screen.dart`: 목적지에 도착했을 때 전체 화면으로 나타나 알람을 띄워주는 네이티브 인텐트(Full-screen Intent) UI입니다.
+  - `widgets/`: 재사용 가능한 UI 컴포넌트들입니다. (검색창 `search_bar_widget.dart`, 검색 결과 `search_result_overlay.dart`, 알림 설정 바텀시트 `alarm_setup_bottom_sheet.dart`, 환경설정 바텀시트 `settings_bottom_sheet.dart`)
 
-### 3. Controller (`lib/modules/map/controller/`)
-- **역할**: View와 Model, Service/Repository 사이의 브릿지 역할을 수행하며 애플리케이션의 상태(State)를 관리합니다.
-- **주요 파일**: `map_controller.dart`
-  - `ChangeNotifier`를 상속받아 지도의 현재 위치, 검색 결과, 실시간 추적 상태(Tracking Mode) 등을 관리합니다.
-  - View에서 발생한 사용자 입력(예: 장소 검색, 내 위치 버튼 클릭)을 받아 처리하고, UI 상태를 업데이트합니다.
+### 3. Controller (`lib/modules/map/controller/` & `lib/core/`)
+- **역할**: UI(View)와 데이터 통신(Service/Repository) 사이의 브릿지 역할을 수행하며 애플리케이션의 상태(State)를 관리합니다. `ChangeNotifier`를 상속받아 상태 변경 시 UI를 자동으로 다시 그리도록 설계되었습니다.
+- **주요 파일**:
+  - `map_controller.dart`: 지도의 이동, 마커 생성, 검색 결과 상태 관리 및 목적지로 향하는 **애니메이션 라인 렌더링**을 제어합니다.
+  - `alarm_controller.dart`: 목적지 알림 활성화/비활성화 상태 및 반경 거리를 관리합니다.
+  - `settings_controller.dart` (`lib/core/`): 알림음(기본음 또는 유튜브 링크)과 같은 전역(Global) 환경 설정 값을 관리합니다.
 
 ### 4. Service & Repository (`lib/modules/map/`)
-- **역할**: 외부 시스템(API, 하드웨어 센서)과의 직접적인 통신을 전담합니다.
+- **역할**: 외부 시스템(HTTP 네트워크, 기기 하드웨어 센서, 백그라운드 프로세스 등)과의 통신 로직을 캡슐화합니다.
 - **주요 파일**:
-  - `repository/kakao_map_repository.dart`: 카카오 REST API 서버와 HTTP 통신을 수행하여 장소 검색 데이터를 가져옵니다.
-  - `service/location_service.dart`: 기기의 GPS(`geolocator`)와 나침반 센서(`flutter_compass`)에 접근하여 실시간 위치 및 방향 스트림을 Controller에 제공합니다. 위치 권한 확인 및 예외 처리(에뮬레이터 폴백 로직 등)를 담당합니다.
+  - `repository/kakao_map_repository.dart`: 카카오 REST API 서버와 직접 HTTP 통신을 수행해 JSON 장소 데이터를 가져옵니다.
+  - `service/location_service.dart`: 기기 GPS(`geolocator`)와 나침반 센서(`flutter_compass`)에 직접 접근하여 위치 스트림을 가져오고 예외 처리를 담당합니다.
+  - `service/alarm_service.dart`: 앱이 꺼진 백그라운드 상태(`flutter_foreground_task`)에서도 GPS를 추적하고 거리를 계산해 목적지에 도달하면 이벤트를 트리거합니다.
 
 ## 트러블슈팅 (문제 해결 이력)
 
@@ -109,3 +110,7 @@ Flutter를 이용한 카카오맵(Kakao Map) API 연동 프로젝트입니다.
   - 설정한 반경 내 진입 시 안드로이드 풀스크린 인텐트(Full-screen Intent)를 발생시켜 기기 화면을 깨우고 `AlarmRingingScreen`을 띄우는 네이티브 기능 연동.
   - 진동(`vibration`)과 소리(`flutter_ringtone_player`)를 동반한 갤럭시 기본 알람 스타일의 UI 적용 및 밀어서 알림 끄기 기능 지원.
   - 하단 메뉴 및 알림 전용 바텀 시트(`AlarmSetupBottomSheet`)를 통해 손쉽게 목적지 검색 및 반경을 설정할 수 있도록 UI/UX 향상.
+- **2026-06-16 16:20:** 목적지 경로 애니메이션 표출 및 유튜브(Youtube) 오디오 알림음 기능 추가.
+  - **지도 줌 아웃 및 경로 애니메이션:** 알람을 활성화할 때, 목적지와 현재 위치가 한 화면에 모두 담기도록 `fitBounds`를 적용하고 파이프에 물이 흐르는 듯한 애니메이션 선을 `Timer`로 직접 구현하여 시각적 피드백 강화 (`map_controller.dart`).
+  - **환경설정 및 로컬 저장소 연동:** `shared_preferences`를 연동하여 앱을 껐다 켜도 알림음 설정 및 사용자가 직접 입력한 유튜브 주소를 기기에 저장하는 `SettingsController` 구현.
+  - **유튜브 백그라운드 재생 연동:** 오픈소스 `youtube_explode_dart`로 비디오에서 순수 오디오 스트림 URL만 빠르고 가볍게 추출하고, `audioplayers`를 통해 백그라운드/알람 화면에서 유튜브 음악이 알람음으로 무한 반복 재생되는 시스템 구현.
