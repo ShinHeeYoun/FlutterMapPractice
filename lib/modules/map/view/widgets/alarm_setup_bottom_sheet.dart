@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kakao_map_plugin/kakao_map_plugin.dart';
 import '../../controller/alarm_controller.dart';
 import '../../controller/map_controller.dart';
 import '../../model/place_model.dart';
@@ -160,6 +161,7 @@ class _AlarmSetupBottomSheetState extends State<AlarmSetupBottomSheet> {
                 onPressed: () async {
                   if (widget.alarmController.isAlarmActive) {
                     await widget.alarmController.stopAlarm();
+                    widget.mapController.clearRoute();
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('알림이 해제되었습니다.')),
@@ -173,6 +175,13 @@ class _AlarmSetupBottomSheetState extends State<AlarmSetupBottomSheet> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('알림이 설정되었습니다! 앱을 내려도 동작합니다.')),
                         );
+                        final current = widget.mapController.currentLocation;
+                        final destPlace = widget.alarmController.destination;
+                        if (current != null && destPlace != null) {
+                          final destination = LatLng(destPlace.lat, destPlace.lng);
+                          widget.mapController.fitBoundsToPoints(current, destination);
+                          widget.mapController.drawAnimatedRoute(current, destination);
+                        }
                         Navigator.pop(context);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(

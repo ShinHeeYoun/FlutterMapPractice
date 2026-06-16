@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kakao_map_plugin/kakao_map_plugin.dart';
 import 'package:flutter_compass/flutter_compass.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../model/place_model.dart';
 import '../repository/kakao_map_repository.dart';
@@ -14,6 +15,7 @@ class MapController extends ChangeNotifier {
   KakaoMapController? _kakaoMapController;
   bool _isMapReady = false;
   bool _isLocationInitialized = false;
+  Timer? _routeAnimationTimer;
 
   LatLng? _currentLocation;
   final List<Marker> _markers = [];
@@ -195,6 +197,58 @@ class MapController extends ChangeNotifier {
     disableTrackingMode();
     _kakaoMapController?.setCenter(latLng);
     clearSearch();
+  }
+
+  void fitBoundsToPoints(LatLng current, LatLng destination) {
+    if (_kakaoMapController == null) return;
+    _kakaoMapController!.fitBounds([current, destination]);
+  }
+
+  void clearRoute() {
+    _routeAnimationTimer?.cancel();
+    _kakaoMapController?.clearPolyline(); // This might clear all polylines, which is fine since we only have the route polylines.
+  }
+
+  void drawAnimatedRoute(LatLng current, LatLng destination) {
+    clearRoute();
+    if (_kakaoMapController == null) return;
+
+    // Draw background pipe
+    final backgroundPolyline = Polyline(
+      polylineId: 'route_background',
+      points: [current, destination],
+      strokeColor: Colors.grey,
+      strokeOpacity: 0.5,
+      strokeWidth: 6,
+      strokeStyle: StrokeStyle.solid,
+    );
+    _kakaoMapController!.addPolyline(polylines: [backgroundPolyline]);
+
+    // Animate foreground water
+    const int steps = 50;
+    int currentStep = 0;
+    
+    _routeAnimationTimer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+      currentStep++;
+      if (currentStep > steps) {
+        timer.cancel();
+        return;
+      }
+
+      final double lat = current.latitude + (destination.latitude - current.latitude) * (currentStep / steps);
+      final double lng = current.longitude + (destination.longitude - current.longitude) * (currentStep / steps);
+      
+      final animatedPolyline = Polyline(
+        polylineId: 'route_foreground',
+        points: [current, LatLng(lat, lng)],
+        strokeColor: Colors.blueAccent,
+        strokeOpacity: 0.8,
+        strokeWidth: 6,
+        strokeStyle: StrokeStyle.solid,
+      );
+      
+      _kakaoMapController!.addPolyline(polylines: [animatedPolyline]);
+    });
   }
 
   @override
