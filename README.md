@@ -28,6 +28,35 @@ Flutter를 이용한 카카오맵(Kakao Map) API 연동 프로젝트입니다.
    flutter run
    ```
 
+## 소스 코드 구조 분석 (MVC 아키텍처)
+
+이 프로젝트는 유지보수와 기능 확장을 용이하게 하기 위해 MVC(Model-View-Controller) 아키텍처 패턴을 기반으로 관심사를 분리하여 설계되었습니다. 핵심 코드는 `lib/modules/map/` 디렉토리 하위에 위치합니다.
+
+### 1. Model (`lib/modules/map/model/`)
+- **역할**: 애플리케이션에서 사용되는 데이터의 구조를 정의합니다.
+- **주요 파일**: `place_model.dart`
+  - 카카오 로컬 API에서 반환되는 JSON 형식의 장소 데이터를 Dart 객체로 변환하여 타입 안정성(Type Safety)을 보장합니다.
+
+### 2. View (`lib/modules/map/view/`)
+- **역할**: 사용자에게 보여지는 화면(UI)을 구성합니다. 비즈니스 로직을 포함하지 않으며, Controller의 상태를 구독하여 화면을 렌더링합니다.
+- **주요 파일**: 
+  - `map_screen.dart`: 카카오맵 지도를 렌더링하는 메인 화면입니다.
+  - `widgets/search_bar_widget.dart`: 상단 검색창 UI 위젯입니다.
+  - `widgets/search_result_overlay.dart`: 검색 결과를 리스트 형태로 보여주는 오버레이 UI 위젯입니다.
+  - `widgets/menu_bottom_sheet.dart`: 하단 설정 메뉴를 구성하는 바텀 시트 UI 위젯입니다.
+
+### 3. Controller (`lib/modules/map/controller/`)
+- **역할**: View와 Model, Service/Repository 사이의 브릿지 역할을 수행하며 애플리케이션의 상태(State)를 관리합니다.
+- **주요 파일**: `map_controller.dart`
+  - `ChangeNotifier`를 상속받아 지도의 현재 위치, 검색 결과, 실시간 추적 상태(Tracking Mode) 등을 관리합니다.
+  - View에서 발생한 사용자 입력(예: 장소 검색, 내 위치 버튼 클릭)을 받아 처리하고, UI 상태를 업데이트합니다.
+
+### 4. Service & Repository (`lib/modules/map/`)
+- **역할**: 외부 시스템(API, 하드웨어 센서)과의 직접적인 통신을 전담합니다.
+- **주요 파일**:
+  - `repository/kakao_map_repository.dart`: 카카오 REST API 서버와 HTTP 통신을 수행하여 장소 검색 데이터를 가져옵니다.
+  - `service/location_service.dart`: 기기의 GPS(`geolocator`)와 나침반 센서(`flutter_compass`)에 접근하여 실시간 위치 및 방향 스트림을 Controller에 제공합니다. 위치 권한 확인 및 예외 처리(에뮬레이터 폴백 로직 등)를 담당합니다.
+
 ## 트러블슈팅 (문제 해결 이력)
 
 ### 1. 파일 잠금(Locking) 및 권한 오류
