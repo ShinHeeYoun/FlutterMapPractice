@@ -3,6 +3,7 @@ import '../../controller/map_controller.dart';
 import '../../controller/alarm_controller.dart';
 import 'alarm_setup_bottom_sheet.dart';
 import 'settings_bottom_sheet.dart';
+import '../alarm_history_screen.dart';
 
 class MenuBottomSheet extends StatelessWidget {
   final MapController mapController;
@@ -73,6 +74,19 @@ class MenuBottomSheet extends StatelessWidget {
                       builder: (context) => AlarmSetupBottomSheet(
                         mapController: mapController,
                         alarmController: alarmController,
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.history, color: Colors.green),
+                  title: const Text('목적지 알림 이용 내역 및 통계'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AlarmHistoryScreen(),
                       ),
                     );
                   },

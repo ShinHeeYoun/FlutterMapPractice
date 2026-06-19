@@ -7,11 +7,13 @@ import '../../model/place_model.dart';
 class AlarmSetupBottomSheet extends StatefulWidget {
   final MapController mapController;
   final AlarmController alarmController;
+  final bool isEditing;
 
   const AlarmSetupBottomSheet({
     super.key,
     required this.mapController,
     required this.alarmController,
+    this.isEditing = false,
   });
 
   @override
@@ -163,19 +165,42 @@ class _AlarmSetupBottomSheetState extends State<AlarmSetupBottomSheet> {
                   backgroundColor: widget.alarmController.isAlarmActive ? Colors.redAccent : Colors.blueAccent,
                 ),
                 onPressed: () async {
-                  if (widget.alarmController.isAlarmActive) {
-                    await widget.alarmController.stopAlarm();
-                    widget.mapController.clearRoute();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('알림이 해제되었습니다.')),
-                      );
-                      setState((){});
+                    final current = widget.mapController.currentLocation;
+                    final destPlace = widget.alarmController.destination;
+                    
+                    String startName = '현재 위치';
+                    if (current != null) {
+                      startName = '위도: ${current.latitude.toStringAsFixed(3)}, 경도: ${current.longitude.toStringAsFixed(3)}';
                     }
-                  } else {
-                    final success = await widget.alarmController.startAlarm();
-                    if (mounted) {
-                      if (success) {
+
+                    if (widget.alarmController.isAlarmActive) {
+                      await widget.alarmController.stopAlarm();
+                      widget.mapController.clearRoute();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('알림이 해제되었습니다.')),
+                        );
+                        setState((){});
+                      }
+                    } else if (widget.isEditing) {
+                      final current = widget.mapController.currentLocation;
+                      String startName = '현재 위치';
+                      if (current != null) {
+                        startName = '위도: ${current.latitude.toStringAsFixed(3)}, 경도: ${current.longitude.toStringAsFixed(3)}';
+                      }
+                      final success = await widget.alarmController.startAlarm(startName: startName);
+                      if (mounted) {
+                        if (success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('반경 설정이 적용되었습니다.')),
+                          );
+                          Navigator.pop(context);
+                        }
+                      }
+                    } else {
+                      final success = await widget.alarmController.startAlarm(startName: startName);
+                      if (mounted) {
+                        if (success) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('알림이 설정되었습니다! 앱을 내려도 동작합니다.')),
                         );
@@ -196,7 +221,9 @@ class _AlarmSetupBottomSheetState extends State<AlarmSetupBottomSheet> {
                   }
                 },
                 child: Text(
-                  widget.alarmController.isAlarmActive ? '알림 끄기' : '알림 켜기',
+                  widget.isEditing 
+                      ? '반경 설정 적용하기'
+                      : (widget.alarmController.isAlarmActive ? '알림 끄기' : '알림 켜기'),
                   style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),

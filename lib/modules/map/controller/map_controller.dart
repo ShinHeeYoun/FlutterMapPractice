@@ -32,6 +32,7 @@ class MapController extends ChangeNotifier {
   // Callback for boundary exception
   Function(String message)? onLocationError;
 
+  KakaoMapController? get kakaoMapController => _kakaoMapController;
   bool get isMapReady => _isMapReady;
   bool get isLocationInitialized => _isLocationInitialized;
   LatLng? get currentLocation => _currentLocation;

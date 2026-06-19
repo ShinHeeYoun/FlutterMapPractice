@@ -2,6 +2,10 @@ import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:kakao_map_plugin/kakao_map_plugin.dart';
+
+import '../../../core/database_helper.dart';
+import '../model/alarm_history_model.dart';
 
 @pragma('vm:entry-point')
 void startCallback() {
@@ -9,11 +13,14 @@ void startCallback() {
 }
 
 class AlarmTaskHandler extends TaskHandler {
-  SendPort? _sendPort;
   double targetLat = 0;
   double targetLng = 0;
   double radius = 0;
   bool isTriggered = false;
+
+  AlarmHistoryModel? activeHistory;
+  LatLng? lastPosition;
+  double accumulatedDistance = 0.0;
 
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
@@ -24,6 +31,15 @@ class AlarmTaskHandler extends TaskHandler {
       targetLng = double.parse(parts[1]);
       radius = double.parse(parts[2]);
     }
+
+    // 활성화된 알람 기록 찾기
+    activeHistory = await DatabaseHelper.instance.getActiveHistory();
+    if (activeHistory != null) {
+      accumulatedDistance = activeHistory!.distanceMeters;
+      if (activeHistory!.routeCoordinates.isNotEmpty) {
+        lastPosition = activeHistory!.routeCoordinates.last;
+      }
+    }
   }
 
   @override
@@ -32,9 +48,50 @@ class AlarmTaskHandler extends TaskHandler {
 
     try {
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
-      
+
+      final currentLatLng = LatLng(position.latitude, position.longitude);
+
+      // 거리 누적 계산
+      if (lastPosition != null) {
+        accumulatedDistance += Geolocator.distanceBetween(
+          lastPosition!.latitude,
+          lastPosition!.longitude,
+          currentLatLng.latitude,
+          currentLatLng.longitude,
+        );
+      }
+      lastPosition = currentLatLng;
+
+      // DB 업데이트
+      if (activeHistory != null) {
+        final List<LatLng> updatedCoords = List.from(activeHistory!.routeCoordinates)..add(currentLatLng);
+        final int totalTimeSeconds = DateTime.now().difference(activeHistory!.date).inSeconds;
+        
+        // 평균 속도 (km/h) = (m / 1000) / (s / 3600)
+        double avgSpeed = 0.0;
+        if (totalTimeSeconds > 0) {
+          avgSpeed = (accumulatedDistance / 1000) / (totalTimeSeconds / 3600);
+        }
+
+        activeHistory = AlarmHistoryModel(
+          id: activeHistory!.id,
+          date: activeHistory!.date,
+          startName: activeHistory!.startName,
+          endName: activeHistory!.endName,
+          totalTimeSeconds: totalTimeSeconds,
+          distanceMeters: accumulatedDistance,
+          averageSpeed: avgSpeed,
+          routeCoordinates: updatedCoords,
+          status: 'IN_PROGRESS',
+        );
+
+        await DatabaseHelper.instance.updateHistory(activeHistory!);
+      }
+
       final distance = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
@@ -49,14 +106,26 @@ class AlarmTaskHandler extends TaskHandler {
 
       if (distance <= radius) {
         isTriggered = true;
-        // Wake up screen and launch app to foreground
+        
+        if (activeHistory != null) {
+          // 알람 트리거 시 COMPLETED 로 변경
+          activeHistory = AlarmHistoryModel(
+            id: activeHistory!.id,
+            date: activeHistory!.date,
+            startName: activeHistory!.startName,
+            endName: activeHistory!.endName,
+            totalTimeSeconds: activeHistory!.totalTimeSeconds,
+            distanceMeters: activeHistory!.distanceMeters,
+            averageSpeed: activeHistory!.averageSpeed,
+            routeCoordinates: activeHistory!.routeCoordinates,
+            status: 'COMPLETED',
+          );
+          await DatabaseHelper.instance.updateHistory(activeHistory!);
+        }
+
         FlutterForegroundTask.wakeUpScreen();
         FlutterForegroundTask.launchApp();
-        
-        // Notify main thread
         FlutterForegroundTask.sendDataToMain('ALARM_TRIGGERED_${distance.toStringAsFixed(0)}');
-        
-        // Stop service after trigger
         FlutterForegroundTask.stopService();
       }
     } catch (e) {
@@ -131,7 +200,7 @@ class AlarmService {
 
   static Future<void> stopAlarm() async {
     if (await FlutterForegroundTask.isRunningService) {
-      await FlutterForegroundTask.stopService();
+      FlutterForegroundTask.sendDataToTask('STOP_ALARM');
     }
   }
 }

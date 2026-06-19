@@ -7,6 +7,7 @@ import 'widgets/search_bar_widget.dart';
 import 'widgets/search_result_overlay.dart';
 import 'widgets/menu_bottom_sheet.dart';
 import 'widgets/alarm_setup_bottom_sheet.dart';
+import 'widgets/active_alarm_panel.dart';
 import 'alarm_ringing_screen.dart';
 
 class MapScreen extends StatefulWidget {
@@ -21,6 +22,8 @@ class _MapScreenState extends State<MapScreen> {
   final AlarmController _alarmController = AlarmController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  double _activePanelHeight = 0.0;
+  bool _isAlarmPanelVisible = false;
 
   @override
   void initState() {
@@ -37,7 +40,33 @@ class _MapScreenState extends State<MapScreen> {
         });
       },
     );
+    _alarmController.addListener(_onAlarmControllerUpdate);
     _initForegroundTaskListener();
+  }
+
+  void _onAlarmControllerUpdate() {
+    if (_alarmController.isAlarmActive && _mapController.kakaoMapController != null) {
+      if (_alarmController.trackingRoute.length >= 2) {
+        final pathPolyline = Polyline(
+          polylineId: 'actual_tracking_path',
+          points: List.from(_alarmController.trackingRoute),
+          strokeColor: Colors.redAccent,
+          strokeOpacity: 0.8,
+          strokeWidth: 5,
+          strokeStyle: StrokeStyle.solid,
+        );
+        _mapController.kakaoMapController!.addPolyline(polylines: [pathPolyline]);
+      }
+    }
+    
+    if (_alarmController.isAlarmActive != _isAlarmPanelVisible) {
+      setState(() {
+        _isAlarmPanelVisible = _alarmController.isAlarmActive;
+        if (!_isAlarmPanelVisible) {
+          _activePanelHeight = 0.0;
+        }
+      });
+    }
   }
 
   void _initForegroundTaskListener() {
@@ -64,6 +93,7 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
+    _alarmController.removeListener(_onAlarmControllerUpdate);
     _mapController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
@@ -91,17 +121,25 @@ class _MapScreenState extends State<MapScreen> {
                     child: CircularProgressIndicator(color: Colors.blueAccent),
                   );
                 }
-                return Listener(
-                  onPointerDown: (_) {
-                    // Disable tracking when user touches the map to pan
-                    _mapController.disableTrackingMode();
-                  },
-                  child: KakaoMap(
-                    center: _mapController.currentLocation,
-                    onMapCreated: (controller) {
-                      _mapController.onMapCreated(controller);
+                return AnimatedPositioned(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: _activePanelHeight,
+                  child: Listener(
+                    onPointerDown: (_) {
+                      // Disable tracking when user touches the map to pan
+                      _mapController.disableTrackingMode();
                     },
-                    markers: _mapController.markers.toList(),
+                    child: KakaoMap(
+                      center: _mapController.currentLocation,
+                      onMapCreated: (controller) {
+                        _mapController.onMapCreated(controller);
+                      },
+                      markers: _mapController.markers.toList(),
+                    ),
                   ),
                 );
               },
@@ -197,6 +235,20 @@ class _MapScreenState extends State<MapScreen> {
               },
             ),
           ),
+          if (_isAlarmPanelVisible)
+            ActiveAlarmPanel(
+              alarmController: _alarmController,
+              mapController: _mapController,
+              panelHeight: 250,
+              peekHeight: 80,
+              onHeightChanged: (height) {
+                if (mounted) {
+                  setState(() {
+                    _activePanelHeight = height;
+                  });
+                }
+              },
+            ),
         ],
       ),
     );
