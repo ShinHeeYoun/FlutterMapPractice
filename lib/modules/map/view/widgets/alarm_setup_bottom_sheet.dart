@@ -30,15 +30,19 @@ class _AlarmSetupBottomSheetState extends State<AlarmSetupBottomSheet> {
     });
 
     try {
-      await widget.mapController.searchPlace(keyword);
-      setState(() {
-        _localSearchResults = widget.mapController.searchResults;
-        _isSearching = false;
-      });
+      final results = await widget.mapController.fetchPlaces(keyword);
+      if (mounted) {
+        setState(() {
+          _localSearchResults = results;
+          _isSearching = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isSearching = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+        });
+      }
     }
   }
 

@@ -183,6 +183,22 @@ class MapController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<List<PlaceModel>> fetchPlaces(String keyword) async {
+    try {
+      final lat = _currentLocation?.latitude ?? 37.4979;
+      final lng = _currentLocation?.longitude ?? 127.0276;
+      
+      return await _mapRepository.searchPlace(
+        keyword: keyword,
+        lat: lat,
+        lng: lng,
+      );
+    } catch (e) {
+      debugPrint('Error fetching places: $e');
+      return [];
+    }
+  }
+
   void selectPlace(PlaceModel place) {
     final latLng = LatLng(place.lat, place.lng);
 
